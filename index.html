@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teams Chat Viewer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      background: linear-gradient(135deg, #dbeafe, #f0f4ff);
+    }
+    .sidebar {
+      width: 20%;
+      border-right: 1px solid #ccc;
+      padding: 1.5rem 1rem;
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      box-shadow: inset -1px 0 0 rgba(0,0,0,0.1);
+    }
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #1e3a8a;
+      margin-bottom: 1rem;
+    }
+    .upload-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .custom-file {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .custom-file input[type="file"] {
+      opacity: 0;
+      width: 100%;
+      height: 40px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      cursor: pointer;
+    }
+    .custom-file-label {
+      display: block;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      color: #333;
+      backdrop-filter: blur(5px);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    #btnLoad {
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background 0.3s ease;
+    }
+    #btnLoad:hover {
+      background-color: #1d4ed8;
+    }
+    #progress {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #555;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      cursor: pointer;
+      margin: 4px 0;
+      padding: 10px 14px 30px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: background 0.2s ease, transform 0.15s ease;
+      backdrop-filter: blur(6px);
+      position: relative;
+      min-height: 50px;
+    }
+    li:hover {
+      background: rgba(0, 123, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .conversation-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+    .conversation-footer {
+      position: absolute;
+      right: 12px;
+      bottom: 6px;
+      font-size: 0.68rem;
+      color: #555;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1px;
+    }
+    .conversation-footer span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #f9fafb;
+      padding: 1rem;
+      overflow: hidden;
+    }
+    #conversationTitle {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0 0 1rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-bottom: 1rem;
+      align-items: stretch;
+    }
+    .message {
+      max-width: 60%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .message.incoming {
+      background: #ffffff;
+      justify-content: flex-start;
+      align-self: flex-start;
+    }
+    .message.outgoing {
+      background: #dbeafe;
+      justify-content: flex-end;
+      align-self: flex-end;
+      margin-left: auto;
+      margin-right: 0;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .text {
+      flex: 1;
+      min-width: 240px;
+    }
+    .text .author {
+      font-weight: 600;
+      color: #1e40af;
+    }
+    .text .timestamp {
+      font-size: 0.75rem;
+      color: #64748b;
+      float: right;
+    }
+    .text .body {
+      margin-top: 0.5rem;
+      color: #111827;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Conversations</h2>
+    <div class="upload-panel">
+      <div class="custom-file">
+        <label class="custom-file-label" id="fileLabel">Choose a messages.json file</label>
+        <input type="file" id="fileinput" accept=".json">
+      </div>
+      <button id="btnLoad">Load</button>
+      <div id="progress">Loading...</div>
+    </div>
+    <ul id="conversations"></ul>
+  </div>
+  <div class="content">
+    <h2 id="conversationTitle">Select a conversation</h2>
+    <div id="messages"></div>
+  </div>
+
+  <script>
+    let currentUser = "Unknown";
+
+    function decodeHtml(str) {
+      const txt = document.createElement('textarea');
+      txt.innerHTML = str;
+      return txt.value;
+    }
+
+    function renderConversations(conversations) {
+      const list = document.getElementById("conversations");
+      list.innerHTML = "";
+      conversations.forEach((conv, index) => {
+        const li = document.createElement("li");
+        const title = decodeHtml(conv.displayName || conv.id);
+        const messageCount = conv.MessageList?.length || 0;
+        const lastTime = conv.properties?.lastimreceivedtime
+          ? new Date(conv.properties.lastimreceivedtime).toLocaleString()
+          : "";
+
+        li.innerHTML = `<div class="conversation-title">${title}</div>
+          <div class="conversation-footer">
+            <span>📩 ${messageCount}</span>
+            <span>🕒 ${lastTime}</span>
+          </div>`;
+
+        li.onclick = () => renderMessages(conv);
+        list.appendChild(li);
+      });
+    }
+
+    function renderMessages(conversation) {
+      document.getElementById("conversationTitle").textContent = decodeHtml(conversation.displayName || conversation.id);
+      const container = document.getElementById("messages");
+      container.innerHTML = "";
+
+      let lastDate = null;
+
+      (conversation.MessageList || []).forEach((msg) => {
+        if (!msg.content) return;
+
+        const div = document.createElement("div");
+
+        let sender = msg.displayName || currentUser;
+		const isCurrentUser = currentUser && sender.endsWith(currentUser.toLowerCase());
+		div.className = `message ${isCurrentUser ? 'outgoing' : 'incoming'}`;
+		
+        const time = new Date(msg.originalarrivaltime).toLocaleString();
+        const content = decodeHtml(msg.content);
+        const initials = sender.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+        const avatar = `<div class="avatar">${initials}</div>`;
+        const messageText = `
+          <div class="text">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem; min-width: 240px; gap: 1rem;">
+              <span class="author">${sender}</span>
+              <span class="timestamp">${time}</span>
+            </div>
+            <div class="body">${content}</div>
+          </div>`;
+
+        div.innerHTML = isCurrentUser ? `${messageText}${avatar}` : `${avatar}${messageText}`;
+
+        const msgDate = new Date(msg.originalarrivaltime).toDateString();
+        if (msgDate !== lastDate) {
+          const dateLabel = document.createElement("div");
+          dateLabel.style.textAlign = "center";
+          dateLabel.style.margin = "1rem 0";
+          dateLabel.style.fontSize = "0.8rem";
+          dateLabel.style.color = "#6b7280";
+          dateLabel.textContent = msgDate;
+          container.appendChild(dateLabel);
+          lastDate = msgDate;
+        }
+
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("fileinput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const label = document.getElementById("fileLabel");
+      label.textContent = file ? file.name : "Choose a messages.json file";
+    });
+
+    document.getElementById("btnLoad").onclick = () => {
+      const fileInput = document.getElementById("fileinput");
+      const file = fileInput.files[0];
+      if (!file) return alert("Please select a JSON file");
+
+      document.getElementById("progress").style.display = "block";
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          currentUser = (data.userId || "Unknown").replace(/^8:/, "");
+          const conversations = (data.conversations || []).filter(c => Array.isArray(c.MessageList));
+          window.chatData = conversations;
+          renderConversations(conversations);
+          document.getElementById("progress").style.display = "none";
+        } catch (err) {
+          alert("Invalid JSON format");
+          console.error(err);
+          document.getElementById("progress").style.display = "none";
+        }
+      };
+      reader.readAsText(file, "utf-8");
+    };
+  </script>
+</body>
+</html>
